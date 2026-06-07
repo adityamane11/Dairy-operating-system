@@ -1,0 +1,139 @@
+{
+  "project_name": "Siddhnath Doodh Sankalan Kendra",
+  "theme_and_archetype": {
+    "theme": "Light",
+    "archetype": "1 (Organic & Earthy)",
+    "description": "A grounded, trustworthy, and traditional yet modern design for a rural Indian dairy collection center."
+  },
+  "typography": {
+    "headings": {
+      "family": "Outfit, sans-serif",
+      "weights": ["600", "700"],
+      "usage": "Used for all primary numbers, stats, and large headers to feel modern and clear."
+    },
+    "body": {
+      "family": "Manrope, sans-serif",
+      "weights": ["400", "500", "600"],
+      "usage": "Used for all standard UI text, Marathi + English bilingual labels, and data tables."
+    },
+    "scale": {
+      "h1": "text-4xl md:text-5xl tracking-tight",
+      "h2": "text-2xl md:text-3xl",
+      "h3": "text-xl",
+      "body": "text-base",
+      "small": "text-sm",
+      "stats": "text-4xl md:text-5xl font-bold tracking-tighter"
+    }
+  },
+  "colors": {
+    "primary": {
+      "DEFAULT": "#2D6A35",
+      "foreground": "#FFFFFF",
+      "description": "Dark Green for trust, agriculture, and brand identity."
+    },
+    "accent": {
+      "DEFAULT": "#D4A017",
+      "foreground": "#FFFFFF",
+      "description": "Gold/Amber for highlights, money/rupees, and primary CTAs."
+    },
+    "background": "#FDFBF7",
+    "surface": "#FFFFFF",
+    "text": {
+      "primary": "#1A201C",
+      "secondary": "#4A5568",
+      "disabled": "#A0AEC0"
+    },
+    "success": "#25D366",
+    "border": "#E2E8F0"
+  },
+  "layout_and_spacing": {
+    "container": "w-full max-w-md mx-auto min-h-screen bg-[#FDFBF7] shadow-xl",
+    "padding": "p-4 md:p-6",
+    "border_radius": "rounded-2xl md:rounded-3xl",
+    "card_style": "bg-white rounded-2xl p-4 shadow-sm border border-gray-100",
+    "general_rules": [
+      "Ensure all tap targets (buttons, inputs) are at least 48px high for thumb-friendliness.",
+      "Use optical alignment. Pad numbers to align right in tables.",
+      "Make numeric inputs very large (text-2xl or text-3xl)."
+    ]
+  },
+  "components_strategy": {
+    "Header": {
+      "style": "Sticky top, white background with subtle shadow, features the CSS-built brand logo (green oval, white 'Siddhnath', black 'Doodh Sankalan Kendra' below).",
+      "actions": "User profile or logout on the right."
+    },
+    "Login_Screen": {
+      "layout": "Splash image at the top, followed by brand logo, then a large segmented control to toggle between Admin and Farmer roles.",
+      "inputs": "Farmer ID, Phone number. Very large input fields."
+    },
+    "Admin_Dashboard": {
+      "layout": "Bento grid style. Top card: Today's Collection (Liters, Amount). Middle: Quick actions (Add Milk, Add Farmer). Bottom: Recent entries.",
+      "fab": "Large floating action button or fixed bottom bar for 'Add Milk Entry'."
+    },
+    "Add_Milk_Entry": {
+      "flow": "Select Farmer -> Camera/Manual Entry toggle -> Inputs (Fat%, SNF%, Liters) -> Auto-calculated Rate & Total -> Save -> WhatsApp Slip.",
+      "camera_ui": "A simulated scanner view with corner brackets and a scanning line animation for AI reading."
+    },
+    "Farmer_Dashboard": {
+      "layout": "Personalized view. Top: My total collection, Rate, Advance balance. Bottom: List of recent daily entries.",
+      "cards": "Highlight Advance deductions clearly."
+    },
+    "WhatsApp_Button": {
+      "style": "bg-[#25D366] text-white rounded-full px-6 py-3 font-semibold flex items-center justify-center gap-2",
+      "behavior": "Generates the Marathi text slip and links to wa.me API."
+    }
+  },
+  "interactions_and_motion": {
+    "hover": "Not heavily applicable as this is a mobile-first app, but use scale-95 on active/tap states for buttons.",
+    "page_transitions": "Slide-in from right or bottom for new screens (e.g., opening camera).",
+    "loading": "Use a subtle rotating milk/drop icon or simple spinner in brand green."
+  },
+  "icons_and_assets": {
+    "library": "lucide-react",
+    "specific_icons": [
+      "Camera for scanning",
+      "Droplet for milk liters",
+      "Users for farmers",
+      "Banknote for money/advance",
+      "MessageCircle for WhatsApp (if specific icon not found, use a chat icon colored green)"
+    ]
+  },
+  "image_urls": {
+    "farmer_portraits": [
+      {
+        "url": "https://images.unsplash.com/photo-1722925407220-b22e1ced9ee9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwyfHxpbmRpYW4lMjBmYXJtZXIlMjBwb3J0cmFpdHxlbnwwfHx8fDE3ODA4MzI4OTF8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Indian farmer smiling (use for mock farmer profile)"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1696371268939-5c5710319bde?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwzfHxpbmRpYW4lMjBmYXJtZXIlMjBwb3J0cmFpdHxlbnwwfHx8fDE3ODA4MzI4OTF8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Indian farmer with bucket (use for mock farmer profile)"
+      }
+    ],
+    "dairy_splash": [
+      {
+        "url": "https://images.unsplash.com/photo-1440428099904-c6d459a7e7b5?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NDh8MHwxfHNlYXJjaHwxfHxkYWlyeSUyMGZhcm18ZW58MHx8fHwxNzgwODMyODk2fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Dairy cows on field (use for splash screen background or auth screen background with heavy overlay)"
+      }
+    ]
+  },
+  "testing_attributes": {
+    "rules": "All interactive and key informational elements MUST include a data-testid attribute. Use kebab-case and role-based naming.",
+    "examples": ["data-testid='login-admin-toggle'", "data-testid='add-milk-button'", "data-testid='fat-input'"]
+  },
+  "bilingual_labels": {
+    "examples": {
+      "milk_collection": "दूध संकलन / Milk Collection",
+      "farmer_name": "शेतकरी नाव / Farmer Name",
+      "total_amount": "एकूण रक्कम / Total Amount",
+      "advance": "उचल / Advance"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Build the app as a mobile-first web app, constrained to max-w-md and centered on desktop, taking full width on mobile.",
+    "Build the brand logo using HTML/CSS: A green oval (rounded-full) with white text 'Siddhnath' inside, and a smaller black text 'Doodh Sankalan Kendra' placed immediately below it.",
+    "Ensure all input fields for numbers use type='number' and have large text sizes (text-2xl) for easy typing.",
+    "Mock the AI photo reading functionality with a setTimeout and a scanning animation overlay. After 2 seconds, auto-fill Fat% and SNF%.",
+    "Use standard HTML/Tailwind for structural layout and Shadcn components for forms, inputs, and dialogs.",
+    "Include 'data-testid' on every button, input, and critical data display element."
+  ]
+}

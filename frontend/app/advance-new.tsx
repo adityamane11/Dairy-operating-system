@@ -25,6 +25,7 @@ export default function AdvanceNew() {
   const { farmer_id } = useLocalSearchParams<{ farmer_id?: string }>();
   const [farmers, setFarmers] = useState<Farmer[]>([]);
   const [selected, setSelected] = useState<Farmer | null>(null);
+  const [query, setQuery] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
@@ -95,30 +96,91 @@ export default function AdvanceNew() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.sectionLabel}>शेतकरी निवडा / Select Farmer</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: SPACING.sm, paddingBottom: SPACING.sm }}
-        >
-          {farmers.map((f) => (
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={18} color={COLORS.textMuted} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Name, ID किंवा फोन शोधा..."
+            placeholderTextColor={COLORS.textFaint}
+            style={styles.searchInput}
+            autoCapitalize="none"
+            testID="advance-farmer-search"
+          />
+          {query ? (
             <TouchableOpacity
-              key={f.id}
-              style={[styles.farmerChip, selected?.id === f.id && styles.farmerChipActive]}
-              onPress={() => setSelected(f)}
-              testID={`advance-farmer-${f.farmer_code}`}
+              onPress={() => setQuery("")}
+              hitSlop={10}
+              testID="clear-advance-search"
             >
-              <Text style={[styles.chipCode, selected?.id === f.id && { color: "#fff" }]}>
-                {f.farmer_code}
-              </Text>
-              <Text
-                style={[styles.chipName, selected?.id === f.id && { color: "#fff" }]}
-                numberOfLines={1}
-              >
-                {f.name}
-              </Text>
+              <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+          ) : null}
+        </View>
+        {(() => {
+          const q = query.trim().toLowerCase();
+          const list = q
+            ? farmers.filter(
+                (f) =>
+                  f.name.toLowerCase().includes(q) ||
+                  f.farmer_code.toLowerCase().includes(q) ||
+                  f.phone.includes(q) ||
+                  (f.village || "").toLowerCase().includes(q),
+              )
+            : farmers;
+          if (list.length === 0) {
+            return (
+              <View style={styles.noMatch}>
+                <Ionicons name="search-outline" size={20} color={COLORS.textFaint} />
+                <Text style={styles.noMatchText}>
+                  &quot;{query}&quot; साठी farmer सापडला नाही
+                </Text>
+              </View>
+            );
+          }
+          return (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: SPACING.sm, paddingBottom: SPACING.sm }}
+              keyboardShouldPersistTaps="handled"
+            >
+              {list.map((f) => (
+                <TouchableOpacity
+                  key={f.id}
+                  style={[
+                    styles.farmerChip,
+                    selected?.id === f.id && styles.farmerChipActive,
+                  ]}
+                  onPress={() => setSelected(f)}
+                  testID={`advance-farmer-${f.farmer_code}`}
+                >
+                  <Text
+                    style={[styles.chipCode, selected?.id === f.id && { color: "#fff" }]}
+                  >
+                    {f.farmer_code}
+                  </Text>
+                  <Text
+                    style={[styles.chipName, selected?.id === f.id && { color: "#fff" }]}
+                    numberOfLines={1}
+                  >
+                    {f.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          );
+        })()}
+
+        {selected ? (
+          <View style={styles.selectedBanner}>
+            <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />
+            <Text style={styles.selectedBannerText} numberOfLines={1}>
+              निवडले: <Text style={{ fontWeight: "800" }}>{selected.name}</Text>{" "}
+              <Text style={{ color: COLORS.accentDark }}>({selected.farmer_code})</Text>
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.card}>
           <Text style={styles.label}>रक्कम / Amount (₹) *</Text>
@@ -187,6 +249,43 @@ const styles = StyleSheet.create({
   farmerChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   chipCode: { fontSize: 10, color: COLORS.accentDark, fontWeight: "700" },
   chipName: { fontSize: 13, color: COLORS.text, fontWeight: "700", marginTop: 2 },
+
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    height: 46,
+    gap: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.sm,
+  },
+  searchInput: { flex: 1, fontSize: 14, color: COLORS.text, fontWeight: "500" },
+  noMatch: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    padding: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderStyle: "dashed",
+  },
+  noMatchText: { color: COLORS.textMuted, fontSize: 12, flex: 1 },
+  selectedBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.md,
+    marginTop: SPACING.xs,
+  },
+  selectedBannerText: { color: COLORS.primaryDark, fontSize: 13, flex: 1 },
   card: {
     backgroundColor: COLORS.surface,
     padding: SPACING.lg,

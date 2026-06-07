@@ -58,7 +58,7 @@ export default function Index() {
         colors={[COLORS.primaryLight, COLORS.bg, COLORS.bg]}
         style={StyleSheet.absoluteFill}
       />
-      <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+      <SafeAreaView style={{ flex: 1, width: "100%", maxWidth: 480, alignSelf: "center" }} edges={["top", "bottom"]}>
         <Animated.View
           style={[
             styles.content,

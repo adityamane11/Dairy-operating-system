@@ -30,7 +30,6 @@ export default function AdminLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home" size={size} color={color} />
           ),
-          tabBarTestID: "tab-home",
         }}
       />
       <Tabs.Screen
@@ -40,7 +39,6 @@ export default function AdminLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people" size={size} color={color} />
           ),
-          tabBarTestID: "tab-farmers",
         }}
       />
       <Tabs.Screen
@@ -50,7 +48,6 @@ export default function AdminLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="list" size={size} color={color} />
           ),
-          tabBarTestID: "tab-entries",
         }}
       />
       <Tabs.Screen
@@ -60,7 +57,6 @@ export default function AdminLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="settings-sharp" size={size} color={color} />
           ),
-          tabBarTestID: "tab-settings",
         }}
       />
     </Tabs>

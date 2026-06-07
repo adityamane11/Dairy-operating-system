@@ -1,17 +1,17 @@
-// Sticky header with brand logo + title + optional right action
+// Sticky header with brand logo + dairy name + optional right action
+import { Image } from "expo-image";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SHADOW, SPACING } from "@/src/theme";
-import { BrandLogo } from "./BrandLogo";
 
 type Props = {
-  title: string;
+  title?: string;
   subtitle?: string;
   onBack?: () => void;
   rightIcon?: keyof typeof Ionicons.glyphMap;
   onRightPress?: () => void;
-  showLogo?: boolean;
+  showBrand?: boolean; // if true, shows logo + सिद्धनाथ दूध संकलन केंद्र (default brand header)
 };
 
 export function StickyHeader({
@@ -20,7 +20,7 @@ export function StickyHeader({
   onBack,
   rightIcon,
   onRightPress,
-  showLogo = true,
+  showBrand = true,
 }: Props) {
   const insets = useSafeAreaInsets();
   return (
@@ -34,25 +34,49 @@ export function StickyHeader({
               hitSlop={10}
               testID="header-back-button"
             >
-              <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
+              <Ionicons name="chevron-back" size={26} color={COLORS.primary} />
             </TouchableOpacity>
-          ) : showLogo ? (
-            <View style={{ transform: [{ scale: 0.9 }] }}>
-              <BrandLogo size="sm" showSubtitle={false} />
-            </View>
+          ) : showBrand ? (
+            <Image
+              source={require("../../assets/brand/logo.png")}
+              style={styles.headerLogo}
+              contentFit="contain"
+              testID="header-brand-logo"
+            />
           ) : null}
         </View>
+
         <View style={styles.center}>
-          <Text style={styles.title} numberOfLines={1} testID="header-title">
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text style={styles.subtitle} numberOfLines={1}>
-              {subtitle}
-            </Text>
-          ) : null}
+          {showBrand && !title ? (
+            <>
+              <Text style={styles.brandName} numberOfLines={1}>
+                सिद्धनाथ दूध संकलन केंद्र
+              </Text>
+              {subtitle ? (
+                <Text style={styles.brandSub} numberOfLines={1}>
+                  {subtitle}
+                </Text>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <Text style={styles.title} numberOfLines={1} testID="header-title">
+                {title}
+              </Text>
+              {showBrand ? (
+                <Text style={styles.brandTagline} numberOfLines={1}>
+                  सिद्धनाथ दूध संकलन केंद्र
+                </Text>
+              ) : subtitle ? (
+                <Text style={styles.subtitle} numberOfLines={1}>
+                  {subtitle}
+                </Text>
+              ) : null}
+            </>
+          )}
         </View>
-        <View style={styles.side}>
+
+        <View style={[styles.side, { alignItems: "flex-end" }]}>
           {rightIcon ? (
             <TouchableOpacity
               onPress={onRightPress}
@@ -81,9 +105,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: SPACING.md,
+    minHeight: 56,
   },
-  side: { width: 44, alignItems: "flex-start" },
-  center: { flex: 1, alignItems: "center" },
+  side: { width: 48, alignItems: "flex-start" },
+  center: { flex: 1, alignItems: "center", paddingHorizontal: 4 },
   iconBtn: {
     width: 44,
     height: 44,
@@ -91,11 +116,33 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 22,
   },
+  headerLogo: { width: 44, height: 44 },
+  brandName: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: COLORS.primary,
+    letterSpacing: 0.2,
+    textAlign: "center",
+  },
+  brandSub: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    marginTop: 1,
+    textAlign: "center",
+  },
   title: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "700",
     color: COLORS.text,
     letterSpacing: 0.2,
+    textAlign: "center",
   },
-  subtitle: { fontSize: 11, color: COLORS.textMuted, marginTop: 1 },
+  brandTagline: {
+    fontSize: 10,
+    color: COLORS.primary,
+    fontWeight: "600",
+    marginTop: 2,
+    textAlign: "center",
+  },
+  subtitle: { fontSize: 11, color: COLORS.textMuted, marginTop: 1, textAlign: "center" },
 });

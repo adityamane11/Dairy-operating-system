@@ -2,12 +2,12 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -47,6 +47,7 @@ export default function Index() {
         <Image
           source={require("../assets/brand/logo.png")}
           style={styles.splashLogo}
+          contentFit="contain"
         />
       </View>
     );
@@ -66,13 +67,16 @@ export default function Index() {
           ]}
         >
           <View style={styles.logoBox}>
-            <Image
-              source={require("../assets/brand/logo.png")}
-              style={styles.logo}
-              testID="brand-logo-image"
-            />
-            <Text style={styles.brand}>Siddhnath</Text>
-            <Text style={styles.tagline}>दूध संकलन केंद्र</Text>
+            <View style={styles.logoFrame}>
+              <Image
+                source={require("../assets/brand/logo.png")}
+                style={styles.logo}
+                contentFit="contain"
+                testID="brand-logo-image"
+              />
+            </View>
+            <Text style={styles.brandDevanagari}>सिद्धनाथ</Text>
+            <Text style={styles.brandTagline}>दूध संकलन केंद्र</Text>
             <View style={styles.divider} />
             <Text style={styles.subtitle}>Doodh Sankalan Kendra</Text>
           </View>
@@ -133,7 +137,7 @@ export default function Index() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  splashLogo: { width: 180, height: 180, alignSelf: "center", resizeMode: "contain" },
+  splashLogo: { width: 200, height: 200, alignSelf: "center" },
   content: {
     flex: 1,
     paddingHorizontal: SPACING.xl,
@@ -141,15 +145,33 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xl,
   },
   logoBox: { alignItems: "center", marginTop: SPACING.lg },
-  logo: { width: 140, height: 140, resizeMode: "contain" },
-  brand: {
-    fontSize: 28,
+  logoFrame: {
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 6,
+  },
+  logo: { width: 150, height: 150 },
+  brandDevanagari: {
+    fontSize: 32,
     fontWeight: "800",
     color: COLORS.primary,
-    marginTop: SPACING.sm,
-    letterSpacing: 0.3,
+    marginTop: SPACING.md,
+    letterSpacing: 0.5,
   },
-  tagline: { fontSize: 18, color: COLORS.text, marginTop: 2, fontWeight: "600" },
+  brandTagline: {
+    fontSize: 20,
+    color: COLORS.text,
+    marginTop: 2,
+    fontWeight: "700",
+  },
   divider: {
     width: 60,
     height: 3,

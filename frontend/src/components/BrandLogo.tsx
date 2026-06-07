@@ -1,24 +1,34 @@
 // Brand logo block (uses real logo asset)
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
+import { StyleSheet, Text, View } from "react-native";
 import { COLORS } from "@/src/theme";
 
-type Size = "sm" | "md" | "lg";
+type Size = "sm" | "md" | "lg" | "xl";
 
-export function BrandLogo({ size = "md", showSubtitle = true }: { size?: Size; showSubtitle?: boolean }) {
-  const d = size === "lg" ? 120 : size === "md" ? 72 : 44;
+const SIZES: Record<Size, number> = { sm: 36, md: 56, lg: 96, xl: 140 };
+
+export function BrandLogo({
+  size = "md",
+  showText = true,
+}: {
+  size?: Size;
+  showText?: boolean;
+}) {
+  const d = SIZES[size];
   return (
     <View style={styles.wrap}>
       <Image
         source={require("../../assets/brand/logo.png")}
-        style={{ width: d, height: d, resizeMode: "contain" }}
+        style={{ width: d, height: d }}
+        contentFit="contain"
         testID="brand-logo"
       />
-      {showSubtitle ? (
-        <View style={{ marginTop: 6 }}>
-          <Text style={[styles.title, size === "lg" && { fontSize: 18 }]}>
-            Siddhnath
+      {showText ? (
+        <View style={{ marginTop: 8, alignItems: "center" }}>
+          <Text style={[styles.title, size === "xl" && { fontSize: 22 }]}>
+            सिद्धनाथ
           </Text>
-          <Text style={[styles.subtitle, size === "lg" && { fontSize: 12 }]}>
+          <Text style={[styles.subtitle, size === "xl" && { fontSize: 14 }]}>
             दूध संकलन केंद्र
           </Text>
         </View>
@@ -30,15 +40,16 @@ export function BrandLogo({ size = "md", showSubtitle = true }: { size?: Size; s
 const styles = StyleSheet.create({
   wrap: { alignItems: "center" },
   title: {
-    fontSize: 14,
+    fontSize: 16,
     color: COLORS.primary,
-    fontWeight: "700",
+    fontWeight: "800",
     textAlign: "center",
     letterSpacing: 0.3,
   },
   subtitle: {
-    fontSize: 10,
-    color: COLORS.textMuted,
+    fontSize: 11,
+    color: COLORS.text,
+    fontWeight: "600",
     textAlign: "center",
     marginTop: 1,
   },

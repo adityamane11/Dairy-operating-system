@@ -1,15 +1,16 @@
+import type { ComponentProps } from "react";
 // Sticky header with brand logo + dairy name + optional right action
 import { Image } from "expo-image";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import { COLORS, SHADOW, SPACING } from "@/src/theme";
 
 type Props = {
   title?: string;
   subtitle?: string;
   onBack?: () => void;
-  rightIcon?: keyof typeof Ionicons.glyphMap;
+  rightIcon?: ComponentProps<typeof Ionicons>["name"];
   onRightPress?: () => void;
   showBrand?: boolean; // if true, shows logo + सिद्धनाथ दूध संकलन केंद्र (default brand header)
 };

@@ -38,3 +38,9 @@ A complete dairy ERP mobile app for Indian dairy collection centers. Built with 
 - `GET/PUT /settings`
 - `POST /rate-preview`
 - `POST /scan-image` (Gemini OCR)
+
+## Update: Expo SDK 58 upgrade (DONE)
+- expo 58, React Native 0.88, React 19.3; all expo-* packages aligned via `expo install --fix`
+- @expo/vector-icons replaced with @react-native-vector-icons/ionicons
+- Removed newArchEnabled / edgeToEdgeEnabled from app.json; expo-router asyncRoutes.web=false (static web export)
+- Next: Custom rate chart upload (P1)

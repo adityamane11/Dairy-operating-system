@@ -1,5 +1,5 @@
 // Admin dashboard
-import { useCallback, useState } from "react";
+import { ComponentProps, useCallback, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -202,7 +202,7 @@ function QuickAction({
   onPress,
   testID,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: ComponentProps<typeof Ionicons>["name"];
   label: string;
   sub: string;
   color: string;

@@ -54,6 +54,7 @@ export type Advance = {
   note?: string;
   date: string;
   settled: boolean;
+  deducted?: number;
   created_at: string;
 };
 
@@ -82,6 +83,55 @@ export type PaymentSummary = {
   net_payable: number;
   avg_fat: number;
   avg_snf: number;
+};
+
+export type StatementDay = { date: string; morning: number; evening: number };
+
+export type StatementDraft = {
+  farmer: Farmer;
+  date_from: string;
+  date_to: string;
+  days: StatementDay[];
+  advances: {
+    advance_id: string;
+    date: string;
+    note?: string;
+    amount: number;
+    available: number;
+    deduct: number;
+  }[];
+  rate: number | null;
+  last_version: number;
+};
+
+export type AdvanceLine = {
+  advance_id: string;
+  date: string;
+  note?: string;
+  amount: number;
+  deducted_now: number;
+  balance_after: number;
+};
+
+export type Statement = {
+  id: string;
+  farmer_id: string;
+  farmer_code: string;
+  farmer_name: string;
+  farmer_phone: string;
+  date_from: string;
+  date_to: string;
+  version: number;
+  rate: number;
+  rows?: (StatementDay & { total: number })[];
+  total_morning: number;
+  total_evening: number;
+  total_liters: number;
+  gross_amount: number;
+  advance_lines: AdvanceLine[];
+  total_deduction: number;
+  net_payable: number;
+  created_at: string;
 };
 
 export type TodaySummary = {
@@ -157,6 +207,23 @@ export const api = {
     http<{ ok: boolean; settled: number }>(`/payment-summary/${farmer_id}/settle-advances`, {
       method: "POST",
     }),
+
+  // Statements
+  statementDraft: (farmer_id: string, date_from: string, date_to: string) =>
+    http<StatementDraft>(
+      `/statement-draft/${farmer_id}?date_from=${date_from}&date_to=${date_to}`,
+    ),
+  createStatement: (data: {
+    farmer_id: string;
+    date_from: string;
+    date_to: string;
+    rate: number;
+    days: StatementDay[];
+    deductions: { advance_id: string; amount: number }[];
+  }) => http<Statement>("/statements", { method: "POST", body: JSON.stringify(data) }),
+  listStatements: (farmer_id?: string) =>
+    http<Statement[]>(`/statements${farmer_id ? `?farmer_id=${farmer_id}` : ""}`),
+  getStatement: (id: string) => http<Statement>(`/statements/${id}`),
 
   // Settings
   getSettings: () => http<Settings>("/settings"),

@@ -44,3 +44,9 @@ A complete dairy ERP mobile app for Indian dairy collection centers. Built with 
 - @expo/vector-icons replaced with @react-native-vector-icons/ionicons
 - Removed newArchEnabled / edgeToEdgeEnabled from app.json; expo-router asyncRoutes.web=false (static web export)
 - Next: Custom rate chart upload (P1)
+
+## Update: 10-Day Statement PDF (Phase 1 built, testing pending)
+- Backend: /api/statement-draft/{farmer_id}, POST/GET /api/statements, GET /api/statements/{id}; advances.deducted field; versioning reverts prev version deductions
+- Frontend: admin/statements.tsx tab, statement-new.tsx (bulk litres, fixed rate, advance deductions, sticky totals), statement/[id].tsx (Share PDF via expo-print + expo-sharing; web = print dialog)
+- Daily WhatsApp auto-send removed from add-entry
+- Next: testing_agent full test of statement flow; Phase 2 farmer statements view, bulk statements

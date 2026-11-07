@@ -103,6 +103,7 @@ class Advance(BaseModel):
     note: Optional[str] = ""
     date: str
     settled: bool = False
+    deducted: float = 0.0
     created_at: str = Field(default_factory=now_iso)
 
 
@@ -111,6 +112,26 @@ class AdvanceCreate(BaseModel):
     amount: float
     note: Optional[str] = ""
     date: Optional[str] = None
+
+
+class StatementDay(BaseModel):
+    date: str
+    morning: float = 0.0
+    evening: float = 0.0
+
+
+class StatementDeduction(BaseModel):
+    advance_id: str
+    amount: float = 0.0
+
+
+class StatementCreate(BaseModel):
+    farmer_id: str
+    date_from: str
+    date_to: str
+    rate: float
+    days: List[StatementDay]
+    deductions: List[StatementDeduction] = []
 
 
 class Settings(BaseModel):
@@ -250,6 +271,7 @@ async def delete_farmer(farmer_id: str):
     await db.farmers.delete_one({"id": farmer_id})
     await db.milk_entries.delete_many({"farmer_id": farmer_id})
     await db.advances.delete_many({"farmer_id": farmer_id})
+    await db.statements.delete_many({"farmer_id": farmer_id})
     return {"ok": True}
 
 
@@ -389,7 +411,7 @@ async def payment_summary(
     advances = await db.advances.find(
         {"farmer_id": farmer_id, "settled": False}, PROJECTION
     ).to_list(500)
-    total_advance = round(sum(a["amount"] for a in advances), 2)
+    total_advance = round(sum(a["amount"] - a.get("deducted", 0) for a in advances), 2)
     net = round(gross - total_advance, 2)
     avg_fat = round(sum(e["fat"] for e in entries) / len(entries), 2) if entries else 0
     avg_snf = round(sum(e["snf"] for e in entries) / len(entries), 2) if entries else 0
@@ -414,6 +436,212 @@ async def settle_advances(farmer_id: str):
         {"farmer_id": farmer_id, "settled": False}, {"$set": {"settled": True}}
     )
     return {"ok": True, "settled": res.modified_count}
+
+
+# ─── Statements (period PDF with bulk entry + fixed rate) ─────────────────
+def date_range(date_from: str, date_to: str) -> List[str]:
+    d0 = datetime.strptime(date_from, "%Y-%m-%d")
+    d1 = datetime.strptime(date_to, "%Y-%m-%d")
+    if d1 < d0:
+        raise HTTPException(400, "कालावधी चुकीचा / Invalid period")
+    if (d1 - d0).days > 62:
+        raise HTTPException(400, "कालावधी 62 दिवसांपेक्षा जास्त नको / Max 62 days")
+    return [(d0 + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((d1 - d0).days + 1)]
+
+
+async def latest_statement(farmer_id: str, date_from: str, date_to: str) -> Optional[dict]:
+    return await db.statements.find_one(
+        {"farmer_id": farmer_id, "date_from": date_from, "date_to": date_to},
+        PROJECTION,
+        sort=[("version", -1)],
+    )
+
+
+def prev_deductions(prev: Optional[dict]) -> dict:
+    if not prev:
+        return {}
+    return {l["advance_id"]: l["deducted_now"] for l in prev.get("advance_lines", [])}
+
+
+@api.get("/statement-draft/{farmer_id}")
+async def statement_draft(farmer_id: str, date_from: str, date_to: str):
+    farmer = await db.farmers.find_one({"id": farmer_id}, PROJECTION)
+    if not farmer:
+        raise HTTPException(404, "Farmer not found")
+    dates = date_range(date_from, date_to)
+    entries = await db.milk_entries.find(
+        {"farmer_id": farmer_id, "date": {"$gte": date_from, "$lte": date_to}}, PROJECTION
+    ).to_list(5000)
+    by_day = {d: {"date": d, "morning": 0.0, "evening": 0.0} for d in dates}
+    for e in entries:
+        if e["date"] in by_day:
+            by_day[e["date"]][e["shift"]] += e["liters"]
+    prev = await latest_statement(farmer_id, date_from, date_to)
+    prev_ded = prev_deductions(prev)
+    advances = await db.advances.find(
+        {"farmer_id": farmer_id, "$or": [{"settled": False}, {"id": {"$in": list(prev_ded)}}]},
+        PROJECTION,
+    ).sort("date", 1).to_list(500)
+    adv_out = []
+    for a in advances:
+        available = round(a["amount"] - a.get("deducted", 0) + prev_ded.get(a["id"], 0), 2)
+        adv_out.append({
+            "advance_id": a["id"],
+            "date": a["date"],
+            "note": a.get("note", ""),
+            "amount": a["amount"],
+            "available": available,
+            "deduct": prev_ded.get(a["id"], 0),
+        })
+    return {
+        "farmer": farmer,
+        "date_from": date_from,
+        "date_to": date_to,
+        "days": [
+            {**v, "morning": round(v["morning"], 2), "evening": round(v["evening"], 2)}
+            for v in by_day.values()
+        ],
+        "advances": adv_out,
+        "rate": prev["rate"] if prev else None,
+        "last_version": prev["version"] if prev else 0,
+    }
+
+
+async def _apply_shift(farmer: dict, date: str, shift: str, liters: float, rate: float):
+    q = {"farmer_id": farmer["id"], "date": date, "shift": shift}
+    existing = await db.milk_entries.find(q, PROJECTION).to_list(50)
+    liters = round(max(liters, 0.0), 2)
+    if liters <= 0:
+        if existing:
+            await db.milk_entries.delete_many(q)
+        return
+    if existing and abs(sum(e["liters"] for e in existing) - liters) < 0.001:
+        for e in existing:
+            await db.milk_entries.update_one(
+                {"id": e["id"]},
+                {"$set": {"rate": rate, "amount": round(e["liters"] * rate, 2)}},
+            )
+        return
+    fat = round(sum(e["fat"] for e in existing) / len(existing), 2) if existing else 0.0
+    snf = round(sum(e["snf"] for e in existing) / len(existing), 2) if existing else 0.0
+    if existing:
+        await db.milk_entries.delete_many(q)
+    entry = MilkEntry(
+        farmer_id=farmer["id"],
+        farmer_code=farmer["farmer_code"],
+        farmer_name=farmer["name"],
+        date=date,
+        shift=shift,
+        liters=liters,
+        fat=fat,
+        snf=snf,
+        rate=rate,
+        amount=round(liters * rate, 2),
+    )
+    await db.milk_entries.insert_one(entry.model_dump())
+
+
+@api.post("/statements")
+async def create_statement(body: StatementCreate):
+    farmer = await db.farmers.find_one({"id": body.farmer_id}, PROJECTION)
+    if not farmer:
+        raise HTTPException(404, "Farmer not found")
+    if body.rate <= 0:
+        raise HTTPException(400, "दर भरा / Enter rate")
+    dates = set(date_range(body.date_from, body.date_to))
+    day_map = {d: {"date": d, "morning": 0.0, "evening": 0.0} for d in sorted(dates)}
+    for d in body.days:
+        if d.date in day_map:
+            day_map[d.date]["morning"] = round(max(d.morning, 0.0), 2)
+            day_map[d.date]["evening"] = round(max(d.evening, 0.0), 2)
+    rows = [
+        {**r, "total": round(r["morning"] + r["evening"], 2)} for r in day_map.values()
+    ]
+    total_morning = round(sum(r["morning"] for r in rows), 2)
+    total_evening = round(sum(r["evening"] for r in rows), 2)
+    total_liters = round(total_morning + total_evening, 2)
+    gross = round(total_liters * body.rate, 2)
+
+    prev = await latest_statement(farmer["id"], body.date_from, body.date_to)
+    prev_ded = prev_deductions(prev)
+
+    # Validate deductions
+    lines = []
+    for d in body.deductions:
+        a = await db.advances.find_one({"id": d.advance_id, "farmer_id": farmer["id"]}, PROJECTION)
+        if not a:
+            raise HTTPException(404, "Advance not found")
+        amt = round(max(d.amount, 0.0), 2)
+        available = round(a["amount"] - a.get("deducted", 0) + prev_ded.get(a["id"], 0), 2)
+        if amt > available + 0.001:
+            raise HTTPException(400, f"वजावट बाकी advance (₹{available}) पेक्षा जास्त / exceeds balance")
+        lines.append({
+            "advance_id": a["id"],
+            "date": a["date"],
+            "note": a.get("note", ""),
+            "amount": a["amount"],
+            "deducted_now": amt,
+            "balance_after": round(available - amt, 2),
+        })
+    total_ded = round(sum(l["deducted_now"] for l in lines), 2)
+    if total_ded > gross + 0.001:
+        raise HTTPException(400, "वजावट एकूण रकमेपेक्षा जास्त / Deduction exceeds gross amount")
+
+    # Revert previous version's deductions, then apply new ones
+    touched = set(prev_ded) | {l["advance_id"] for l in lines}
+    for aid, amt in prev_ded.items():
+        await db.advances.update_one({"id": aid}, {"$inc": {"deducted": -amt}})
+    for l in lines:
+        await db.advances.update_one({"id": l["advance_id"]}, {"$inc": {"deducted": l["deducted_now"]}})
+    for aid in touched:
+        a = await db.advances.find_one({"id": aid}, PROJECTION)
+        if a:
+            await db.advances.update_one(
+                {"id": aid},
+                {"$set": {"settled": a.get("deducted", 0) >= a["amount"] - 0.001}},
+            )
+
+    # Bulk create/update milk entries with fixed rate
+    for r in rows:
+        await _apply_shift(farmer, r["date"], "morning", r["morning"], body.rate)
+        await _apply_shift(farmer, r["date"], "evening", r["evening"], body.rate)
+
+    st = {
+        "id": str(uuid.uuid4()),
+        "farmer_id": farmer["id"],
+        "farmer_code": farmer["farmer_code"],
+        "farmer_name": farmer["name"],
+        "farmer_phone": farmer.get("phone", ""),
+        "date_from": body.date_from,
+        "date_to": body.date_to,
+        "version": (prev["version"] + 1) if prev else 1,
+        "rate": round(body.rate, 2),
+        "rows": rows,
+        "total_morning": total_morning,
+        "total_evening": total_evening,
+        "total_liters": total_liters,
+        "gross_amount": gross,
+        "advance_lines": lines,
+        "total_deduction": total_ded,
+        "net_payable": round(gross - total_ded, 2),
+        "created_at": now_iso(),
+    }
+    await db.statements.insert_one(dict(st))
+    return st
+
+
+@api.get("/statements")
+async def list_statements(farmer_id: Optional[str] = None):
+    q = {"farmer_id": farmer_id} if farmer_id else {}
+    return await db.statements.find(q, {"_id": 0, "rows": 0}).sort("created_at", -1).to_list(500)
+
+
+@api.get("/statements/{statement_id}")
+async def get_statement(statement_id: str):
+    st = await db.statements.find_one({"id": statement_id}, PROJECTION)
+    if not st:
+        raise HTTPException(404, "Statement not found")
+    return st
 
 
 # ─── Settings ──────────────────────────────────────────────────────────────

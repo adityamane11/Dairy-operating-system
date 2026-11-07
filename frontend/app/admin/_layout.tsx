@@ -51,6 +51,15 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
+        name="statements"
+        options={{
+          title: "Statement",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="document-text" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",

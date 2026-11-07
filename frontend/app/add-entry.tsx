@@ -18,7 +18,6 @@ import { StickyHeader } from "@/src/components/StickyHeader";
 import { COLORS, RADIUS, SHADOW, SPACING } from "@/src/theme";
 import { api, Farmer } from "@/src/lib/api";
 import { useToast } from "@/src/components/Toast";
-import { buildEntrySlip, shareToWhatsApp } from "@/src/lib/whatsapp";
 import { storage } from "@/src/utils/storage";
 
 export default function AddEntry() {
@@ -99,7 +98,7 @@ export default function AddEntry() {
     return () => clearTimeout(t);
   }, [fat, snf, liters]);
 
-  const save = async (shareAfter: boolean) => {
+  const save = async () => {
     if (!selected) {
       toast("कृपया farmer निवडा", "error");
       return;
@@ -113,7 +112,7 @@ export default function AddEntry() {
     }
     setSaving(true);
     try {
-      const entry = await api.createEntry({
+      await api.createEntry({
         farmer_id: selected.id,
         shift,
         liters: l,
@@ -122,13 +121,6 @@ export default function AddEntry() {
         density: density ? parseFloat(density) : null,
       });
       toast("Entry saved! ✅", "success");
-      if (shareAfter) {
-        const settings = await api.getSettings();
-        await shareToWhatsApp(
-          selected.phone,
-          buildEntrySlip(entry, settings.dairy_name),
-        );
-      }
       router.back();
     } catch (e: any) {
       toast(e.message, "error");
@@ -380,22 +372,13 @@ export default function AddEntry() {
 
         <View style={styles.btnRow}>
           <TouchableOpacity
-            style={[styles.saveBtn, styles.saveOnly, saving && { opacity: 0.6 }]}
-            onPress={() => save(false)}
+            style={[styles.saveBtn, styles.saveMain, saving && { opacity: 0.6 }]}
+            onPress={save}
             disabled={saving}
             testID="save-only-btn"
           >
-            <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
-            <Text style={[styles.saveText, { color: COLORS.primary }]}>Save</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.saveBtn, styles.saveShare, saving && { opacity: 0.6 }]}
-            onPress={() => save(true)}
-            disabled={saving}
-            testID="save-share-btn"
-          >
-            <Ionicons name="logo-whatsapp" size={20} color="#fff" />
-            <Text style={styles.saveText}>Save & Send</Text>
+            <Ionicons name="checkmark-circle" size={20} color="#fff" />
+            <Text style={styles.saveText}>Save Entry</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAwareScrollView>
@@ -565,12 +548,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     borderRadius: RADIUS.lg,
   },
-  saveOnly: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-  },
-  saveShare: { backgroundColor: COLORS.whatsapp, ...SHADOW.fab },
+  saveMain: { backgroundColor: COLORS.primary, ...SHADOW.fab },
   saveText: { color: "#fff", fontWeight: "700", fontSize: 15 },
 
   emptyWrap: { alignItems: "center", padding: SPACING.xxl, marginTop: SPACING.xxl },

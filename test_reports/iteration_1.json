@@ -1,0 +1,49 @@
+{
+  "summary": "SDK 58 regression test. Backend: 19/19 pytest pass against the public URL. Web preview at 390x844: loads with no red screen and no runtime errors. Role select, admin login (wrong and correct password), 4 admin tabs with Ionicons, add farmer, add milk entry (manual fat/snf/liters, live rate preview), add advance, farmer detail, farmer login (wrong and correct phone), farmer-home, session survives reload, and logout all work, and data was checked through the API. ROOT CAUSE of 'can't see app in my phone': the expo supervisor command is `expo export -p web` + `npx serve dist`, so no Metro dev server runs. Expo Go gets index.html instead of a manifest or bundle, so the QR / Expo Go flow cannot work. 'Refused to connect' in preview most likely comes from the ~50s+ window during each restart while the export runs and `npx serve` is downloaded again (expo.err.log shows serve@14.2.6 / 14.2.7 being installed on each start). In that window nothing listens on port 3000. Also, SDK 58 needs the SDK-58 Expo Go app (released Oct 2026), so a phone with an older Expo Go cannot open the project. UI bug: admin bottom tab labels are clipped. Deprecated packages detected: none (no expo-av, expo-barcode-scanner or expo-background-fetch; @expo/vector-icons fully replaced). SafeAreaView issues detected: none (all imports come from react-native-safe-area-context).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/settings", "issue": "Returns admin_password in plain text with no auth. Anyone can read the admin password."},
+      {"endpoint": "ALL admin endpoints", "issue": "No auth or token checks. Farmers, entries, advances and settings can be changed by anyone with the URL."},
+      {"endpoint": "POST /api/farmers (auto code)", "issue": "next_farmer_code() uses count_documents()+1, so the generated code can collide with an existing code after deletions or custom codes, and the request returns 400 'already exists'."},
+      {"endpoint": "DELETE /api/farmers/{id}, /milk-entries/{id}, /advances/{id}", "issue": "Returns ok:true even when the id does not exist (no 404)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Admin bottom tab bar (app/admin/_layout.tsx)", "issue": "Tab labels Home/Farmers/Entries/Settings are clipped: the label text box is at y=828-833, so only 5px is visible inside the 56px tab bar (height 56 + paddingTop 6 + paddingBottom 6 on web, where insets.bottom=0). Increase the height to about 64, or drop the fixed height or padding.", "testID": "n/a", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Expo Go on a phone (QR)", "issue": "No Metro dev server is running. A manifest request with the expo-platform header and /index.bundle?platform=ios both return the static index.html. Expo Go cannot load the app. Supervisor runs `yarn expo export -p web ... && npx serve -s dist -l 3000`.", "affected_testIDs": []},
+      {"flow": "Preview availability after restart", "issue": "Each restart re-exports the web bundle (8MB, unminified) and downloads `serve` again with npx before port 3000 starts listening, so the preview shows 'refused to connect' for roughly 50s+ after each restart, or longer if the npm download is slow or fails.", "affected_testIDs": []},
+      {"flow": "Deep link / refresh on /add-entry, /advance-new, /farmer-new", "issue": "After save (and on the header back button), router.back() is called with no canGoBack() fallback. On a direct URL or refresh this logs 'GO_BACK was not handled' and the user stays on the form. The data still saves.", "affected_testIDs": ["save-only-btn", "advance-save", "farmer-new-save", "header-back-button"]}
+    ],
+    "design_issues": [
+      {"screen": "Role select (index.tsx)", "issues": ["The logo image shows a white square sticking out of the circular brand-logo container. It needs overflow:hidden or a matching borderRadius."]}
+    ],
+    "react_native_issues": [
+      {"component": "Toast / scan-camera Animated", "issue": "useNativeDriver:true triggers a 'native animated module is missing' warning on web. Use Platform.OS !== 'web'. Reference: /app/frontend/src/components/Toast.tsx:25"},
+      {"component": "Expo Go SDK 58 compatibility", "issue": "The project is on SDK 58 (expo ^58, RN 0.88.1). A phone needs the SDK-58 Expo Go build; older Expo Go versions refuse SDK 58 projects. Reference: /app/frontend/package.json:24"}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_dairy_backend.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "HIGH: For the phone/Expo Go flow, a Metro dev server (e.g. `expo start --tunnel --port 3000`) must be serving the manifest. The current static export + serve setup only works for the web preview. Restore the standard expo start command, or make sure the tunnel/dev server is running for Expo Go, and confirm that the user's Expo Go version supports SDK 58.",
+    "HIGH: Reduce preview downtime. Avoid `npx serve` downloading on each start (install serve as a devDependency or globally), and note that the preview refuses connections during the export.",
+    "MEDIUM: Fix the clipped tab bar labels in app/admin/_layout.tsx (raise the height or remove the fixed height).",
+    "LOW: Add a canGoBack() ? router.back() : router.replace('/admin') fallback in add-entry, advance-new, farmer-new and farmer-detail.",
+    "LOW: Stop returning admin_password from GET /api/settings, use max-code-based farmer code generation, and return 404 from DELETE for missing ids."
+  ],
+  "critical_code_review_comments": [
+    "server.py: admin_password is stored in plain text and exposed through the public GET /settings.",
+    "server.py:180 next_farmer_code is count-based, which can produce duplicate codes.",
+    "Frontend uses EXPO_PUBLIC_BACKEND_URL (src/lib/api.ts:2), which matches frontend/.env, so this is OK."
+  ],
+  "updated_files": ["/app/backend/tests/test_dairy_backend.py (rate/settings assertions now derived from live settings; base_rate is user-configured as 37; settings revert restores the original value; removed the localhost default)", "/app/backend/tests/conftest.py (removed the localhost default)"],
+  "success_rate": {"backend": "100% (19/19)", "frontend": "~92% (all functional flows pass; tab label clipping bug; Expo Go on phone not working due to server setup)"},
+  "seed_data_creation": "Created TEST_SDK58 Farmer (T958) with 2 entries and 1 advance. Deleted by id afterwards (cascade). Pre-existing T901 TEST_Regression Farmer was left untouched. Test settings change on dairy_phone was reverted to the original value.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run pytest with EXPO_BACKEND_URL=https://farmer-dairy-app.preview.emergentagent.com. page.goto with networkidle never settles (keep-alive polling), so use domcontentloaded. The farmer-home logout testID is header-right-button; admin logout is logout-btn on the settings tab. Settings base_rate=37 is user data, do not change it.",
+  "rca_of_issue": "Phone: supervisor's expo program serves a static web export only, so Expo Go receives HTML instead of a manifest (verified with curl using the expo-platform header). Preview 'refused to connect': port 3000 is not listening while `expo export` runs and `npx serve` is downloaded on each restart. Once up, it returns 200 and the app works fully."
+}

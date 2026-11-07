@@ -16,7 +16,7 @@ export default function AdminLayout() {
         tabBarStyle: {
           backgroundColor: COLORS.surface,
           borderTopColor: COLORS.border,
-          height: 56 + insets.bottom,
+          height: 64 + insets.bottom,
           paddingBottom: insets.bottom > 0 ? insets.bottom : Platform.OS === "ios" ? 8 : 6,
           paddingTop: 6,
         },

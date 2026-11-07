@@ -2,7 +2,7 @@ import os
 import pytest
 import requests
 
-BASE_URL = os.environ.get("EXPO_BACKEND_URL", "http://localhost:8001").rstrip("/")
+BASE_URL = os.environ.get("EXPO_BACKEND_URL").rstrip("/")
 
 
 @pytest.fixture(scope="session")

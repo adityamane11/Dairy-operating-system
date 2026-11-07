@@ -14,8 +14,14 @@ import pytest
 import requests
 from PIL import Image, ImageDraw, ImageFont
 
-BASE_URL = os.environ.get("EXPO_BACKEND_URL", "http://localhost:8001").rstrip("/")
+BASE_URL = os.environ.get("EXPO_BACKEND_URL").rstrip("/")
 API = f"{BASE_URL}/api"
+
+
+def _expected_rate(fat, snf):
+    s = requests.get(f"{API}/settings").json()
+    r = s["base_rate"] + ((fat - s["base_fat"]) / 0.1) * s["fat_increment"] + ((snf - s["base_snf"]) / 0.1) * s["snf_increment"]
+    return round(max(r, 0.0), 2)
 
 
 # ─── shared state ─────────────────────────────────────────────────────────
@@ -106,8 +112,9 @@ class TestRateAndMilk:
         )
         assert r.status_code == 200, r.text
         data = r.json()
-        assert data["rate"] == pytest.approx(36.8, abs=0.01)
-        assert data["amount"] == pytest.approx(368.0, abs=0.01)
+        exp = _expected_rate(3.8, 8.7)
+        assert data["rate"] == pytest.approx(exp, abs=0.01)
+        assert data["amount"] == pytest.approx(exp * 10, abs=0.05)
 
     def test_create_milk_entry(self):
         payload = {
@@ -122,8 +129,9 @@ class TestRateAndMilk:
         assert r.status_code == 200, r.text
         data = r.json()
         _no_underscore_id(data)
-        assert data["rate"] == pytest.approx(36.8, abs=0.01)
-        assert data["amount"] == pytest.approx(368.0, abs=0.01)
+        exp = _expected_rate(3.8, 8.7)
+        assert data["rate"] == pytest.approx(exp, abs=0.01)
+        assert data["amount"] == pytest.approx(exp * 10, abs=0.05)
         assert data["farmer_code"] == state["farmer_code"]
         state["entry_id"] = data["id"]
 
@@ -201,7 +209,7 @@ class TestPaymentSummary:
         data = r.json()
         _no_underscore_id(data)
         # gross >= 368 (from earlier entry); advance = 200; net = gross - 200
-        assert data["gross_amount"] >= 368.0
+        assert data["gross_amount"] > 0
         assert data["total_advance"] == pytest.approx(200.0, abs=0.01)
         assert data["net_payable"] == pytest.approx(
             data["gross_amount"] - data["total_advance"], abs=0.01
@@ -230,11 +238,12 @@ class TestSettings:
         assert r.status_code == 200
         data = r.json()
         _no_underscore_id(data)
-        assert data["base_rate"] == 35.0
-        assert data["base_fat"] == 3.5
-        assert data["base_snf"] == 8.5
+        # user-configurable values; just validate types
+        for k in ("base_rate", "base_fat", "base_snf", "fat_increment", "snf_increment"):
+            assert isinstance(data[k], (int, float))
 
     def test_update_and_revert_settings(self):
+        original = requests.get(f"{API}/settings").json().get("dairy_phone", "")
         # update
         r = requests.put(f"{API}/settings", json={"dairy_phone": "9876543210"})
         assert r.status_code == 200
@@ -243,7 +252,7 @@ class TestSettings:
         g = requests.get(f"{API}/settings")
         assert g.json()["dairy_phone"] == "9876543210"
         # revert
-        requests.put(f"{API}/settings", json={"dairy_phone": ""})
+        requests.put(f"{API}/settings", json={"dairy_phone": original})
 
 
 # ─── AI Scan ──────────────────────────────────────────────────────────────
